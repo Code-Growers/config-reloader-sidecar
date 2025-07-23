@@ -16,6 +16,23 @@ import (
 )
 
 func main() {
+	level := &slog.LevelVar{}
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		AddSource: true,
+		Level:     level,
+	}))
+	slog.SetDefault(logger)
+
+	if lvl := os.Getenv("LOG_LEVEL"); lvl != "" {
+		logLevel := slog.LevelInfo
+		err := logLevel.UnmarshalText([]byte(lvl))
+		if err != nil {
+			slog.Warn("Invalid LOG_LEVEL env var")
+		}
+
+		level.Set(logLevel)
+	}
+
 	if err := runConfigReloader(); err != nil {
 		slog.Error("Config realoader main error", "err", err)
 		os.Exit(1)
@@ -55,12 +72,13 @@ func runConfigReloader() error {
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
-	slog.Info(fmt.Sprintf("starting watcher with CONFIG_DIR=%s, PROCESS_NAME=%s, RELOAD_SIGNAL=%s\n", configDir, processName, reloadSignal))
+	slog.Info(fmt.Sprintf("starting watcher with CONFIG_DIR=%s, PROCESS_NAME=%s, RELOAD_SIGNAL=%s", configDir, processName, reloadSignal))
 outer:
 	for {
 		select {
 		case event := <-watcher.Events:
-			if event.Op&fsnotify.Chmod != fsnotify.Chmod {
+			slog.Debug(fmt.Sprintf("Event %+v", event))
+			if event.Op == fsnotify.Rename {
 				slog.Debug(fmt.Sprintf("modified file: %s", event.Name))
 				err := reloadProcess(processName, reloadSignal)
 				if err != nil {
@@ -92,7 +110,7 @@ func findPID(process string) (int, error) {
 
 	for _, p := range processes {
 		if p.Executable() == process {
-			log.Printf("found executable %s (pid: %d)\n", p.Executable(), p.Pid())
+			slog.Debug(fmt.Sprintf("found executable %s (pid: %d)", p.Executable(), p.Pid()), "pid", p.Pid())
 			return p.Pid(), nil
 		}
 	}
@@ -106,11 +124,11 @@ func reloadProcess(process string, signal syscall.Signal) error {
 		return err
 	}
 
-	err = syscall.Kill(pid, signal)
-	if err != nil {
-		return fmt.Errorf("could not send signal: %v", err)
-	}
+	// err = syscall.Kill(pid, signal)
+	// if err != nil {
+	// 	return fmt.Errorf("could not send signal: %v", err)
+	// }
 
-	slog.Info(fmt.Sprintf("signal %s sent to %s (pid: %d)\n", strings.ToUpper(signal.String()), process, pid), "pid", pid)
+	slog.Info(fmt.Sprintf("signal %s sent to %s (pid: %d)", strings.ToUpper(signal.String()), process, pid), "pid", pid)
 	return nil
 }
