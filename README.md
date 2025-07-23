@@ -7,6 +7,7 @@ A small (3MB uncompressed docker image), efficient (via inotify) sidecar to trig
 A fairly common way to implement configuration hot-reloading is to have the app re-read configuration files when receiving a specific [unix signal](https://en.wikipedia.org/wiki/Signal_(IPC)), usually [SIGHUP](https://en.wikipedia.org/wiki/SIGHUP).
 
 Applications using this method include:
+- [haproxy](https://nginx.org/en/docs/control.html)
 - [nginx](https://nginx.org/en/docs/control.html)
 - [apache](https://httpd.apache.org/docs/2.4/stopping.html#hup)
 - [sshd](https://apple.stackexchange.com/questions/88598/how-to-have-sshd-re-read-its-config-file-without-killing-ssh-connections)

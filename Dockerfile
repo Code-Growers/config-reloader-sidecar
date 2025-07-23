@@ -1,25 +1,9 @@
-FROM golang:1.16 as builder
+FROM scratch
 
-WORKDIR /workspace
+COPY --from=alpine:3.20 /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-ADD go.mod .
-ADD go.sum .
-RUN go mod download
+ADD ./build /app
 
-ADD . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o config-reloader-sidecar .
+WORKDIR /app
 
-# UPX compression
-FROM gruebel/upx:latest as upx
-
-COPY --from=builder /workspace/config-reloader-sidecar .
-
-RUN upx --best --lzma /config-reloader-sidecar
-
-# Runtime
-
-FROM gcr.io/distroless/static-debian11:latest
-
-COPY --from=upx /config-reloader-sidecar .
-
-CMD ["/config-reloader-sidecar"]
+ENTRYPOINT ["./reloader"]
