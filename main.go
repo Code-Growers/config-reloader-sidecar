@@ -124,10 +124,10 @@ func reloadProcess(process string, signal syscall.Signal) error {
 		return err
 	}
 
-	// err = syscall.Kill(pid, signal)
-	// if err != nil {
-	// 	return fmt.Errorf("could not send signal: %v", err)
-	// }
+	err = syscall.Kill(pid, signal)
+	if err != nil {
+		return fmt.Errorf("could not send signal: %v", err)
+	}
 
 	slog.Info(fmt.Sprintf("signal %s sent to %s (pid: %d)", strings.ToUpper(signal.String()), process, pid), "pid", pid)
 	return nil
